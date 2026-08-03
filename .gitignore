@@ -1,0 +1,20 @@
+# .NET
+[Bb]in/
+[Oo]bj/
+*.user
+
+# Node / frontend
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+
+# IDE
+.vs/
+.vscode/*
+!.vscode/extensions.json
+
+# OS
+Thumbs.db
+.DS_Store
