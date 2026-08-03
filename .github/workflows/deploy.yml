@@ -1,0 +1,138 @@
+name: Deploy KitchenDeck
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  AZURE_CONTAINER_GROUP_NAME: kitchendeck-api
+  AZURE_RESOURCE_GROUP: kitchendeck-rg
+  AZURE_LOCATION: eastus
+  AZURE_STATIC_WEB_APP_NAME: kitchendeck-web
+  GCP_GCR_IMAGE: gcr.io/${{ secrets.GCP_PROJECT_ID }}/kitchendeck-api
+  FRONTEND_DIR: frontend/kitchen-deck-ui
+  BACKEND_DIR: backend/KitchenDeck.API
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Build backend
+        run: dotnet build backend/KitchenDeck.API/KitchenDeck.API.csproj -c Release
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/kitchen-deck-ui/package-lock.json
+
+      - name: Install frontend deps
+        run: |
+          cd frontend/kitchen-deck-ui
+          npm ci
+
+      - name: Build frontend
+        run: |
+          cd frontend/kitchen-deck-ui
+          npm run build
+
+  deploy-backend-aci:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to GCR
+        uses: docker/login-action@v3
+        with:
+          registry: gcr.io
+          username: _json_key
+          password: ${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/KitchenDeck.API/Dockerfile
+          push: true
+          tags: ${{ env.GCP_GCR_IMAGE }}:${{ github.sha }}
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Create resource group if needed
+        run: |
+          az group create --name ${{ env.AZURE_RESOURCE_GROUP }} --location ${{ env.AZURE_LOCATION }}
+
+      - name: Deploy Azure Container Instance
+        run: |
+          az container create \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --name ${{ env.AZURE_CONTAINER_GROUP_NAME }} \
+            --image ${{ env.GCP_GCR_IMAGE }}:${{ github.sha }} \
+            --cpu 1 \
+            --memory 2 \
+            --ports 8080 \
+            --environment-variables ASPNETCORE_URLS=http://+:8080 Jwt__Secret='${{ secrets.JWT_SECRET }}' ConnectionStrings__AzureBlobStorage='${{ secrets.AZURE_BLOB_CONNECTION_STRING }}' \
+            --dns-name-label kitchendeck-${{ github.run_id }} \
+            --registry-server gcr.io \
+            --registry-username _json_key \
+            --registry-password '${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}'
+
+  deploy-frontend-static:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/kitchen-deck-ui/package-lock.json
+
+      - name: Install frontend deps
+        run: |
+          cd frontend/kitchen-deck-ui
+          npm ci
+
+      - name: Build frontend
+        run: |
+          cd frontend/kitchen-deck-ui
+          npm run build
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to Azure Static Web Apps
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          app_location: frontend/kitchen-deck-ui
+          output_location: dist
+          skip_app_build: true
