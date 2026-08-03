@@ -100,8 +100,6 @@ This repository now includes a GitHub Actions workflow at [.github/workflows/dep
 
 Create these secrets in GitHub under Settings → Secrets and variables → Actions:
 
-- `GCP_PROJECT_ID`
-- `GCP_SERVICE_ACCOUNT_JSON`
 - `AZURE_CREDENTIALS`
 - `AZURE_STATIC_WEB_APPS_API_TOKEN`
 - `JWT_SECRET`
@@ -124,11 +122,11 @@ az storage account show-connection-string --name <unique-storage-account> --reso
 
 3. Create an Azure Static Web App in the Azure portal or CLI. The GitHub Action will deploy to it using the API token.
 
-### GCP prerequisites
+### GitHub Container Registry prerequisites
 
-1. Create a GCP project and enable Container Registry.
-2. Create a service account with roles suitable for pushing to GCR.
-3. Download the JSON key and store it as the `GCP_SERVICE_ACCOUNT_JSON` secret.
+1. Ensure the repository package permissions allow the workflow to publish to GHCR.
+2. In the repository settings, enable package writes for the workflow.
+3. The workflow uses `GITHUB_TOKEN` for authentication, so no extra registry secret is required.
 
 ### Backend runtime environment
 
