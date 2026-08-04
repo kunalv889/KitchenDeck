@@ -1,133 +1,87 @@
 name: Deploy KitchenDeck
 
+# ── Required GitHub Secrets ──────────────────────────────────────────────────
+# AZURE_CREDENTIALS                Service principal JSON (az ad sp create-for-rbac --sdk-auth)
+# AZURE_RESOURCE_GROUP             Resource group containing the Container App
+# AZURE_CONTAINER_APP_NAME         Container App name (e.g. kitchendeck-api)
+# BACKEND_URL                      Container App URL INCLUDING /api
+#                                    (e.g. https://kitchendeck-api.<region>.azurecontainerapps.io/api)
+# AZURE_STATIC_WEB_APPS_API_TOKEN  Deployment token from the Static Web App resource
+# GHCR_TOKEN                       GitHub PAT with read:packages
+#                                    (Container App uses this to pull the image on scale-out)
+# ─────────────────────────────────────────────────────────────────────────────
+# One-time backend config (run once via CLI or the Azure Portal):
+#   az containerapp update \
+#     --name <app> --resource-group <rg> \
+#     --set-env-vars \
+#       ASPNETCORE_ENVIRONMENT=Production \
+#       ASPNETCORE_URLS=http://+:8080 \
+#       Jwt__Secret="<32+ char secret>" \
+#       ConnectionStrings__AzureBlobStorage="<blob connection string>" \
+#       Cors__AllowedOrigins__0="https://<your-swa>.azurestaticapps.net"
+# ─────────────────────────────────────────────────────────────────────────────
+
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
-env:
-  AZURE_CONTAINER_GROUP_NAME: kitchendeck-api
-  AZURE_RESOURCE_GROUP: kitchendeck-rg
-  AZURE_LOCATION: eastus
-  AZURE_STATIC_WEB_APP_NAME: kitchendeck-web
-  GHCR_IMAGE: ghcr.io/${{ github.repository_owner }}/kitchendeck-api
-  FRONTEND_DIR: frontend/kitchen-deck-ui
-  BACKEND_DIR: backend/KitchenDeck.API
-
 jobs:
-  build-and-test:
+  deploy-backend:
+    name: Deploy Backend → Container Apps (via GHCR)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write   # needed to push to GHCR
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup .NET 8
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 8.0.x
-
-      - name: Build backend
-        run: dotnet build backend/KitchenDeck.API/KitchenDeck.API.csproj -c Release
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: frontend/kitchen-deck-ui/package-lock.json
-
-      - name: Install frontend deps
-        run: |
-          cd frontend/kitchen-deck-ui
-          npm ci
-
-      - name: Build frontend
-        run: |
-          cd frontend/kitchen-deck-ui
-          npm run build
-
-  deploy-backend-aci:
-    needs: build-and-test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Authenticate to GitHub Container Registry
+      - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and push backend image
+      - name: Build and push image to GHCR
         uses: docker/build-push-action@v6
         with:
           context: .
           file: backend/KitchenDeck.API/Dockerfile
           push: true
-          tags: ${{ env.GHCR_IMAGE }}:${{ github.sha }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/kitchendeck-api:latest
+            ghcr.io/${{ github.repository_owner }}/kitchendeck-api:${{ github.sha }}
 
-      - name: Azure login
+      - name: Login to Azure
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Create resource group if needed
+      - name: Update Container App — pull from GHCR, scale to zero when idle
         run: |
-          az group create --name ${{ env.AZURE_RESOURCE_GROUP }} --location ${{ env.AZURE_LOCATION }}
+          az containerapp registry set \
+            --name ${{ secrets.AZURE_CONTAINER_APP_NAME }} \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --server ghcr.io \
+            --username ${{ github.repository_owner }} \
+            --password "${{ secrets.GHCR_TOKEN }}"
 
-      - name: Deploy Azure Container Instance
-        run: |
-          az container create \
-            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --name ${{ env.AZURE_CONTAINER_GROUP_NAME }} \
-            --image ${{ env.GHCR_IMAGE }}:${{ github.sha }} \
-            --cpu 1 \
-            --memory 2 \
-            --ports 8080 \
-            --environment-variables ASPNETCORE_URLS=http://+:8080 Jwt__Secret='${{ secrets.JWT_SECRET }}' ConnectionStrings__AzureBlobStorage='${{ secrets.AZURE_BLOB_CONNECTION_STRING }}' \
-            --dns-name-label kitchendeck-${{ github.run_id }} \
-            --registry-server ghcr.io \
-            --registry-username ${{ github.actor }} \
-            --registry-password '${{ secrets.GITHUB_TOKEN }}'
+          az containerapp update \
+            --name ${{ secrets.AZURE_CONTAINER_APP_NAME }} \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --image ghcr.io/${{ github.repository_owner }}/kitchendeck-api:${{ github.sha }} \
+            --min-replicas 0 \
+            --max-replicas 1
 
-  deploy-frontend-static:
-    needs: build-and-test
+  deploy-frontend:
+    name: Deploy Frontend → Static Web Apps
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: frontend/kitchen-deck-ui/package-lock.json
-
-      - name: Install frontend deps
-        run: |
-          cd frontend/kitchen-deck-ui
-          npm ci
-
-      - name: Build frontend
-        run: |
-          cd frontend/kitchen-deck-ui
-          npm run build
-
-      - name: Azure login
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Deploy to Azure Static Web Apps
+      - name: Deploy to Static Web Apps
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
@@ -135,4 +89,5 @@ jobs:
           action: upload
           app_location: frontend/kitchen-deck-ui
           output_location: dist
-          skip_app_build: true
+        env:
+          VITE_API_URL: ${{ secrets.BACKEND_URL }}

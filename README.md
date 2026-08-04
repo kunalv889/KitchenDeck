@@ -51,6 +51,8 @@ dotnet user-secrets init
 dotnet user-secrets set "ConnectionStrings:AzureBlobStorage" "<your-connection-string>"
 dotnet user-secrets set "Jwt:Secret" "<a-strong-32+-char-secret>"
 ```
+to check secrets locally
+dotnet user-secrets list
 
 ## Running locally
 
