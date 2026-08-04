@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { ChefHat, UserPlus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import ThemeToggle from '../components/ThemeToggle';
 
 export default function RegisterPage() {
   const { register } = useAuth();
@@ -27,7 +29,12 @@ export default function RegisterPage() {
 
   return (
     <div className="auth-card">
-      <h1>KitchenDeck</h1>
+      <div className="auth-head">
+        <span className="brand">
+          <ChefHat size={22} /> KitchenDeck
+        </span>
+        <ThemeToggle />
+      </div>
       <h2>Create your account</h2>
       <form onSubmit={onSubmit}>
         <label>
@@ -49,7 +56,10 @@ export default function RegisterPage() {
           />
         </label>
         {error && <p className="error">{error}</p>}
-        <button type="submit" disabled={busy}>{busy ? 'Creating…' : 'Create account'}</button>
+        <button type="submit" className="btn-block" disabled={busy}>
+          <UserPlus size={16} />
+          {busy ? 'Creating…' : 'Create account'}
+        </button>
       </form>
       <p className="muted">
         Already have an account? <Link to="/login">Sign in</Link>

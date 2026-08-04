@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { ChefHat, Lock, RefreshCw } from 'lucide-react';
 import { kitchenApi } from '../services/api';
 import type { Order, OrderItem } from '../types';
+import ThemeToggle from '../components/ThemeToggle';
 
 const REFRESH_MS = 5000;
 const STORAGE_PREFIX = 'kd_kitchen_';
@@ -91,7 +93,10 @@ export default function KitchenPage() {
     return (
       <div className="kitchen-gate">
         <form className="auth-card" onSubmit={unlock}>
-          <h1>Kitchen Window</h1>
+          <div className="auth-head">
+            <span className="brand"><ChefHat size={22} /> Kitchen Window</span>
+            <ThemeToggle />
+          </div>
           <p className="muted">Enter the 6-digit kitchen passcode to open the live order board.</p>
           <input
             type="password"
@@ -103,7 +108,8 @@ export default function KitchenPage() {
             required
           />
           {error && <p className="error">{error}</p>}
-          <button type="submit" disabled={unlocking || !passcode.trim()}>
+          <button type="submit" className="btn-block" disabled={unlocking || !passcode.trim()}>
+            <Lock size={16} />
             {unlocking ? 'Unlocking…' : 'Open board'}
           </button>
         </form>
@@ -115,18 +121,19 @@ export default function KitchenPage() {
     <div className="kitchen">
       <header className="kitchen-topbar">
         <div>
-          <h1>Kitchen Window{restaurantName ? ` · ${restaurantName}` : ''}</h1>
+          <h1><ChefHat size={24} /> Kitchen Window{restaurantName ? ` · ${restaurantName}` : ''}</h1>
           <p className="muted">
             {orders.length} active order{orders.length === 1 ? '' : 's'}
             {lastUpdated && ` · updated ${lastUpdated.toLocaleTimeString()}`}
           </p>
         </div>
         <div className="kitchen-topbar-actions">
-          <button className="link-btn" onClick={() => void loadOrders()}>
-            Refresh
+          <ThemeToggle />
+          <button className="btn-secondary" onClick={() => void loadOrders()}>
+            <RefreshCw size={15} /> Refresh
           </button>
-          <button className="link-btn" onClick={lock}>
-            Lock
+          <button className="btn-secondary" onClick={lock}>
+            <Lock size={15} /> Lock
           </button>
         </div>
       </header>
@@ -134,7 +141,10 @@ export default function KitchenPage() {
       {error && <p className="error">{error}</p>}
 
       {byTable.length === 0 ? (
-        <p className="muted kitchen-empty">No active orders right now.</p>
+        <div className="empty-state kitchen-empty">
+          <ChefHat size={34} />
+          <p className="muted">No active orders right now.</p>
+        </div>
       ) : (
         <div className="kitchen-board">
           {byTable.map(([tableNumber, tableOrders]) => (

@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { ArrowLeft, ExternalLink, KeyRound, Trash2, UserPlus, Users } from 'lucide-react';
 import { restaurantApi } from '../services/api';
 import { ALL_ROLES, type Member, type Restaurant, type StaffRole } from '../types';
 import MenuManager from '../components/MenuManager';
 import TablesManager from '../components/TablesManager';
+import ThemeToggle from '../components/ThemeToggle';
 
 export default function RestaurantDetailPage() {
   const { id = '' } = useParams();
@@ -96,14 +98,22 @@ export default function RestaurantDetailPage() {
   };
 
   if (loading) {
-    return <div className="page"><p className="muted">Loading…</p></div>;
+    return (
+      <div className="page">
+        <div className="skeleton" style={{ height: '2rem', width: '40%', marginBottom: '1.5rem' }} />
+        <div className="skeleton-list">
+          <div className="skeleton skeleton-row" />
+          <div className="skeleton skeleton-row" />
+        </div>
+      </div>
+    );
   }
 
   if (!restaurant) {
     return (
       <div className="page">
         <p className="error">{error ?? 'Restaurant not found.'}</p>
-        <Link to="/">Back</Link>
+        <Link className="back-link" to="/"><ArrowLeft size={15} /> Back</Link>
       </div>
     );
   }
@@ -112,8 +122,11 @@ export default function RestaurantDetailPage() {
     <div className="page">
       <header className="topbar">
         <div>
-          <Link to="/" className="muted">← All restaurants</Link>
+          <Link to="/" className="back-link"><ArrowLeft size={15} /> All restaurants</Link>
           <h1>{restaurant.name}</h1>
+        </div>
+        <div className="topbar-right">
+          <ThemeToggle />
         </div>
       </header>
 
@@ -134,7 +147,7 @@ export default function RestaurantDetailPage() {
       {isAdmin && (
         <>
           <section className="panel">
-            <h2>Add staff</h2>
+            <h2><UserPlus size={18} /> Add staff</h2>
             <form className="stacked-form" onSubmit={onAddMember}>
               <input
                 type="email"
@@ -155,12 +168,12 @@ export default function RestaurantDetailPage() {
                   </label>
                 ))}
               </div>
-              <button type="submit">Add member</button>
+              <button type="submit"><UserPlus size={16} /> Add member</button>
             </form>
           </section>
 
           <section className="panel">
-            <h2>Staff</h2>
+            <h2><Users size={18} /> Staff</h2>
             <ul className="card-list">
               {members.map((m) => (
                 <li key={m.userId} className="card">
@@ -183,7 +196,9 @@ export default function RestaurantDetailPage() {
                   </div>
                   {m.userId !== restaurant.ownerUserId && (
                     <div className="card-actions">
-                      <button className="link-btn danger" onClick={() => onRemove(m)}>Remove</button>
+                      <button className="link-btn danger" onClick={() => onRemove(m)}>
+                        <Trash2 size={15} /> Remove
+                      </button>
                     </div>
                   )}
                 </li>
@@ -192,7 +207,7 @@ export default function RestaurantDetailPage() {
           </section>
 
           <section className="panel">
-            <h2>Kitchen window passcode</h2>
+            <h2><KeyRound size={18} /> Kitchen window passcode</h2>
             <p className="muted">
               {restaurant.hasKitchenPasscode
                 ? 'A passcode is set. Enter a new value to change it.'
@@ -211,8 +226,8 @@ export default function RestaurantDetailPage() {
             {restaurant.hasKitchenPasscode && (
               <p className="muted">
                 Open the live board:{' '}
-                <Link to={`/kitchen/${id}`} target="_blank" rel="noopener">
-                  Kitchen window
+                <Link className="inline-link" to={`/kitchen/${id}`} target="_blank" rel="noopener">
+                  Kitchen window <ExternalLink size={13} />
                 </Link>{' '}
                 (opens with the passcode above).
               </p>

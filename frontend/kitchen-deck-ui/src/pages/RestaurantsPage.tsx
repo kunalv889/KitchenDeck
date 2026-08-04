@@ -1,8 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
+import { ChefHat, ClipboardList, LogOut, Plus, Settings, Store } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { restaurantApi } from '../services/api';
 import type { Restaurant } from '../types';
+import ThemeToggle from '../components/ThemeToggle';
 
 export default function RestaurantsPage() {
   const { user, logout } = useAuth();
@@ -49,15 +51,18 @@ export default function RestaurantsPage() {
   return (
     <div className="page">
       <header className="topbar">
-        <h1>KitchenDeck</h1>
+        <h1 className="brand"><ChefHat size={24} /> KitchenDeck</h1>
         <div className="topbar-right">
           <span className="muted">{user?.displayName}</span>
-          <button className="link-btn" onClick={logout}>Sign out</button>
+          <ThemeToggle />
+          <button className="btn-secondary" onClick={logout}>
+            <LogOut size={16} /> Sign out
+          </button>
         </div>
       </header>
 
       <section className="panel">
-        <h2>Create a restaurant</h2>
+        <h2><Plus size={18} /> Create a restaurant</h2>
         <form className="inline-form" onSubmit={onCreate}>
           <input
             placeholder="Restaurant name"
@@ -72,17 +77,27 @@ export default function RestaurantsPage() {
             maxLength={6}
             onChange={(e) => setPasscode(e.target.value.replace(/\D/g, ''))}
           />
-          <button type="submit" disabled={creating}>{creating ? 'Creating…' : 'Create'}</button>
+          <button type="submit" disabled={creating}>
+            <Plus size={16} />
+            {creating ? 'Creating…' : 'Create'}
+          </button>
         </form>
         {error && <p className="error">{error}</p>}
       </section>
 
       <section className="panel">
-        <h2>Your restaurants</h2>
+        <h2><Store size={18} /> Your restaurants</h2>
         {loading ? (
-          <p className="muted">Loading…</p>
+          <div className="skeleton-list">
+            <div className="skeleton skeleton-row" />
+            <div className="skeleton skeleton-row" />
+            <div className="skeleton skeleton-row" />
+          </div>
         ) : restaurants.length === 0 ? (
-          <p className="muted">You are not part of any restaurant yet. Create one above.</p>
+          <div className="empty-state">
+            <Store size={30} />
+            <p className="muted">You are not part of any restaurant yet. Create one above.</p>
+          </div>
         ) : (
           <ul className="card-list">
             {restaurants.map((r) => (
@@ -94,8 +109,12 @@ export default function RestaurantsPage() {
                   </p>
                 </div>
                 <div className="card-actions">
-                  <Link to={`/restaurants/${r.id}/orders`}>Orders</Link>
-                  <Link to={`/restaurants/${r.id}`}>Manage</Link>
+                  <Link className="btn btn-secondary" to={`/restaurants/${r.id}/orders`}>
+                    <ClipboardList size={15} /> Orders
+                  </Link>
+                  <Link className="btn btn-secondary" to={`/restaurants/${r.id}`}>
+                    <Settings size={15} /> Manage
+                  </Link>
                 </div>
               </li>
             ))}

@@ -1,7 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import {
+  ArrowLeft,
+  Check,
+  ChefHat,
+  Flame,
+  Minus,
+  Plus,
+  RefreshCw,
+  Send,
+  Utensils,
+  X,
+} from 'lucide-react';
 import { menuApi, orderApi, tableApi, type OrderLineInput } from '../services/api';
 import type { DiningTable, MenuItem, Order, OrderItemStatus } from '../types';
+import ThemeToggle from '../components/ThemeToggle';
 
 export default function OrdersPage() {
   const { id: restaurantId = '' } = useParams();
@@ -130,24 +143,39 @@ export default function OrdersPage() {
   };
 
   if (loading) {
-    return <div className="page"><p className="muted">Loading…</p></div>;
+    return (
+      <div className="page">
+        <div className="skeleton" style={{ height: '2rem', width: '30%', marginBottom: '1.5rem' }} />
+        <div className="skeleton-list">
+          <div className="skeleton skeleton-row" />
+          <div className="skeleton skeleton-row" />
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="page">
       <header className="topbar">
         <div>
-          <Link to={`/restaurants/${restaurantId}`} className="muted">← Restaurant</Link>
+          <Link to={`/restaurants/${restaurantId}`} className="back-link">
+            <ArrowLeft size={15} /> Restaurant
+          </Link>
           <h1>Orders</h1>
         </div>
-        <button className="link-btn" onClick={loadOrders}>Refresh</button>
+        <div className="topbar-right">
+          <ThemeToggle />
+          <button className="btn-secondary" onClick={loadOrders}>
+            <RefreshCw size={15} /> Refresh
+          </button>
+        </div>
       </header>
 
       {error && <p className="error">{error}</p>}
 
       {/* New order builder */}
       <section className="panel">
-        <h2>Take a new order</h2>
+        <h2><Plus size={18} /> Take a new order</h2>
         {tables.length === 0 ? (
           <p className="muted">Add tables first.</p>
         ) : availableMenu.length === 0 ? (
@@ -174,7 +202,7 @@ export default function OrdersPage() {
                   className="pick-btn"
                   onClick={() => addToCart(m.id)}
                 >
-                  + {m.name} <span className="muted">{m.price.toFixed(2)}</span>
+                  <Plus size={14} /> {m.name} <span className="muted">{m.price.toFixed(2)}</span>
                 </button>
               ))}
             </div>
@@ -195,9 +223,13 @@ export default function OrdersPage() {
                         />
                       </div>
                       <div className="qty-controls">
-                        <button type="button" onClick={() => setCartQty(line.menuItemId, line.quantity - 1)}>−</button>
+                        <button type="button" aria-label="Decrease quantity" onClick={() => setCartQty(line.menuItemId, line.quantity - 1)}>
+                          <Minus size={15} />
+                        </button>
                         <span>{line.quantity}</span>
-                        <button type="button" onClick={() => setCartQty(line.menuItemId, line.quantity + 1)}>+</button>
+                        <button type="button" aria-label="Increase quantity" onClick={() => setCartQty(line.menuItemId, line.quantity + 1)}>
+                          <Plus size={15} />
+                        </button>
                       </div>
                     </li>
                   );
@@ -207,7 +239,7 @@ export default function OrdersPage() {
 
             <div className="form-actions">
               <button type="button" onClick={submitOrder} disabled={!tableId || cartLines.length === 0}>
-                Send order
+                <Send size={16} /> Send order
               </button>
               {cartLines.length > 0 && (
                 <button type="button" className="link-btn" onClick={() => setCart({})}>Clear</button>
@@ -219,9 +251,12 @@ export default function OrdersPage() {
 
       {/* Active orders */}
       <section className="panel">
-        <h2>Active orders</h2>
+        <h2><Utensils size={18} /> Active orders</h2>
         {orders.length === 0 ? (
-          <p className="muted">No active orders.</p>
+          <div className="empty-state">
+            <ChefHat size={30} />
+            <p className="muted">No active orders.</p>
+          </div>
         ) : (
           <div className="orders-grid">
             {orders.map((order) => (
@@ -244,10 +279,12 @@ export default function OrdersPage() {
                           <span className={`status-dot ${line.status.toLowerCase()}`} title={line.status} />
                           {next && (
                             <button className="link-btn" onClick={() => advanceItem(order, line.id, next)}>
-                              {next === 'Preparing' ? 'Prepare' : 'Serve'}
+                              {next === 'Preparing' ? <><Flame size={14} /> Prepare</> : <><Check size={14} /> Serve</>}
                             </button>
                           )}
-                          <button className="link-btn danger" onClick={() => removeLine(order, line.id)}>✕</button>
+                          <button className="link-btn danger" aria-label="Remove item" onClick={() => removeLine(order, line.id)}>
+                            <X size={14} />
+                          </button>
                         </span>
                       </li>
                     );
@@ -271,12 +308,16 @@ export default function OrdersPage() {
 
                 <div className="order-actions">
                   {order.status !== 'Preparing' && order.status !== 'Served' && (
-                    <button onClick={() => setOrderStatus(order, 'Preparing')}>Mark preparing</button>
+                    <button onClick={() => setOrderStatus(order, 'Preparing')}>
+                      <Flame size={15} /> Mark preparing
+                    </button>
                   )}
                   {order.status !== 'Served' && (
-                    <button onClick={() => setOrderStatus(order, 'Served')}>Mark served</button>
+                    <button onClick={() => setOrderStatus(order, 'Served')}>
+                      <Check size={15} /> Mark served
+                    </button>
                   )}
-                  <button className="link-btn" onClick={() => closeOrder(order)}>Close</button>
+                  <button className="btn-secondary" onClick={() => closeOrder(order)}>Close</button>
                 </div>
               </div>
             ))}

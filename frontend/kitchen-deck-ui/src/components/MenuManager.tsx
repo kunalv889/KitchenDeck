@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { Pencil, Plus, Trash2, UtensilsCrossed } from 'lucide-react';
 import { menuApi, type MenuItemInput } from '../services/api';
 import type { MenuItem } from '../types';
 
@@ -82,7 +83,7 @@ export default function MenuManager({
 
   return (
     <section className="panel">
-      <h2>Menu</h2>
+      <h2><UtensilsCrossed size={18} /> Menu</h2>
 
       {canEdit && (
         <form className="stacked-form" onSubmit={onSubmit}>
@@ -122,7 +123,9 @@ export default function MenuManager({
             Available
           </label>
           <div className="form-actions">
-            <button type="submit">{editingId ? 'Update item' : 'Add item'}</button>
+            <button type="submit">
+              <Plus size={16} /> {editingId ? 'Update item' : 'Add item'}
+            </button>
             {editingId && (
               <button type="button" className="link-btn" onClick={resetForm}>Cancel</button>
             )}
@@ -132,7 +135,10 @@ export default function MenuManager({
       )}
 
       {loading ? (
-        <p className="muted">Loading…</p>
+        <div className="skeleton-list">
+          <div className="skeleton skeleton-row" />
+          <div className="skeleton skeleton-row" />
+        </div>
       ) : items.length === 0 ? (
         <p className="muted">No menu items yet.</p>
       ) : (
@@ -152,8 +158,12 @@ export default function MenuManager({
               </div>
               {canEdit && (
                 <div className="card-actions">
-                  <button className="link-btn" onClick={() => onEdit(item)}>Edit</button>
-                  <button className="link-btn danger" onClick={() => onDelete(item)}>Delete</button>
+                  <button className="link-btn" onClick={() => onEdit(item)}>
+                    <Pencil size={15} /> Edit
+                  </button>
+                  <button className="link-btn danger" onClick={() => onDelete(item)}>
+                    <Trash2 size={15} /> Delete
+                  </button>
                 </div>
               )}
             </li>

@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { LayoutGrid, Pencil, Plus, Trash2 } from 'lucide-react';
 import { tableApi, type TableInput } from '../services/api';
 import type { DiningTable } from '../types';
 
@@ -70,7 +71,7 @@ export default function TablesManager({
 
   return (
     <section className="panel">
-      <h2>Tables</h2>
+      <h2><LayoutGrid size={18} /> Tables</h2>
 
       {canEdit && (
         <form className="stacked-form" onSubmit={onSubmit}>
@@ -97,7 +98,9 @@ export default function TablesManager({
             />
           </div>
           <div className="form-actions">
-            <button type="submit">{editingId ? 'Update table' : 'Add table'}</button>
+            <button type="submit">
+              <Plus size={16} /> {editingId ? 'Update table' : 'Add table'}
+            </button>
             {editingId && (
               <button type="button" className="link-btn" onClick={resetForm}>Cancel</button>
             )}
@@ -107,7 +110,10 @@ export default function TablesManager({
       )}
 
       {loading ? (
-        <p className="muted">Loading…</p>
+        <div className="skeleton-list">
+          <div className="skeleton skeleton-row" />
+          <div className="skeleton skeleton-row" />
+        </div>
       ) : tables.length === 0 ? (
         <p className="muted">No tables yet.</p>
       ) : (
@@ -123,8 +129,12 @@ export default function TablesManager({
               </div>
               {canEdit && (
                 <div className="card-actions">
-                  <button className="link-btn" onClick={() => onEdit(table)}>Edit</button>
-                  <button className="link-btn danger" onClick={() => onDelete(table)}>Delete</button>
+                  <button className="link-btn" onClick={() => onEdit(table)}>
+                    <Pencil size={15} /> Edit
+                  </button>
+                  <button className="link-btn danger" onClick={() => onDelete(table)}>
+                    <Trash2 size={15} /> Delete
+                  </button>
                 </div>
               )}
             </li>
