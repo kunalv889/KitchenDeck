@@ -7,18 +7,12 @@ name: Deploy KitchenDeck
 # BACKEND_URL                      Container App URL INCLUDING /api
 #                                    (e.g. https://kitchendeck-api.<region>.azurecontainerapps.io/api)
 # AZURE_STATIC_WEB_APPS_API_TOKEN  Deployment token from the Static Web App resource
-# GHCR_TOKEN                       GitHub PAT with read:packages
-#                                    (Container App uses this to pull the image on scale-out)
 # ─────────────────────────────────────────────────────────────────────────────
-# One-time backend config (run once via CLI or the Azure Portal):
-#   az containerapp update \
-#     --name <app> --resource-group <rg> \
-#     --set-env-vars \
-#       ASPNETCORE_ENVIRONMENT=Production \
-#       ASPNETCORE_URLS=http://+:8080 \
-#       Jwt__Secret="<32+ char secret>" \
-#       ConnectionStrings__AzureBlobStorage="<blob connection string>" \
-#       Cors__AllowedOrigins__0="https://<your-swa>.azurestaticapps.net"
+# Backend runtime config (ASPNETCORE_URLS, Jwt__Secret,
+# ConnectionStrings__AzureBlobStorage, Cors__AllowedOrigins__0), the ingress
+# target port (8080), the container name, and the GHCR pull credential all live
+# ON the Container App in Azure. This pipeline ONLY swaps the image, so a new
+# deployment can never regress that configuration.
 # ─────────────────────────────────────────────────────────────────────────────
 
 on:
@@ -59,21 +53,12 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Update Container App — pull from GHCR, scale to zero when idle
+      - name: Update Container App image (image-only — preserves all other config)
         run: |
-          az containerapp registry set \
-            --name ${{ secrets.AZURE_CONTAINER_APP_NAME }} \
-            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-            --server ghcr.io \
-            --username ${{ github.repository_owner }} \
-            --password "${{ secrets.GHCR_TOKEN }}"
-
           az containerapp update \
             --name ${{ secrets.AZURE_CONTAINER_APP_NAME }} \
             --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-            --image ghcr.io/${{ github.repository_owner }}/kitchendeck-api:${{ github.sha }} \
-            --min-replicas 0 \
-            --max-replicas 1
+            --image ghcr.io/${{ github.repository_owner }}/kitchendeck-api:${{ github.sha }}
 
   deploy-frontend:
     name: Deploy Frontend → Static Web Apps

@@ -91,62 +91,65 @@ npm run dev
 
 ## CI/CD deployment flow
 
-This repository now includes a GitHub Actions workflow at [.github/workflows/deploy.yml](.github/workflows/deploy.yml) that:
+Pushing to `main` runs the GitHub Actions workflow at [.github/workflows/deploy.yml](.github/workflows/deploy.yml), which:
 
-- builds and tests the backend and frontend on every push to main
-- builds and pushes the backend container image to Google Container Registry (GCR)
-- deploys the backend to Azure Container Instances (ACI)
-- deploys the frontend to Azure Static Web Apps
+- builds the backend image and pushes it to **GitHub Container Registry (GHCR)** as `ghcr.io/<owner>/kitchendeck-api:latest` and `:<sha>`
+- updates the **Azure Container App** to the new image (image-only — see below)
+- builds the frontend and deploys it to **Azure Static Web Apps**
+
+### Deployment topology
+
+- **Backend:** Azure Container Apps, external HTTP ingress on target port **8080**, scale 0–1 (scales to zero when idle, so the first request after idle has a cold start).
+- **Frontend:** Azure Static Web Apps, built by Oryx with `VITE_API_URL` injected at build time.
+- **Registry:** GHCR (private package). The Container App stores its own GHCR pull PAT (`read:packages`) in Azure.
+
+### The pipeline is image-only
+
+Backend runtime configuration lives **on the Container App in Azure**, not in the workflow. The workflow only runs `az containerapp update --image …`, so it never touches ingress, target port, container name, environment variables, scale settings, or the registry pull credential. This keeps repeat deployments from regressing the app's configuration.
 
 ### Required GitHub secrets
 
-Create these secrets in GitHub under Settings → Secrets and variables → Actions:
+Create these under Settings → Secrets and variables → Actions:
 
-- `AZURE_CREDENTIALS`
-- `AZURE_STATIC_WEB_APPS_API_TOKEN`
-- `JWT_SECRET`
-- `AZURE_BLOB_CONNECTION_STRING`
+| Secret | Purpose |
+| --- | --- |
+| `AZURE_CREDENTIALS` | Service principal JSON for `azure/login` (contributor on the resource group). |
+| `AZURE_RESOURCE_GROUP` | Resource group holding the Container App (e.g. `kitchen-deck-rg`). |
+| `AZURE_CONTAINER_APP_NAME` | Container App name (e.g. `kitchendeck-api`). |
+| `BACKEND_URL` | Public backend API base URL **including `/api`**, used as the frontend's `VITE_API_URL`. |
+| `AZURE_STATIC_WEB_APPS_API_TOKEN` | Deployment token from the Static Web App resource. |
 
-### Azure prerequisites
+The image build/push authenticates with the built-in `GITHUB_TOKEN` (no extra registry secret needed). The GHCR pull PAT used at runtime is stored on the Container App itself, not in GitHub.
 
-1. Create a resource group:
+### One-time backend configuration
 
-```bash
-az group create --name kitchendeck-rg --location eastus
-```
+Set these on the Container App once (via the Azure Portal or CLI). The pipeline preserves them on every deploy:
 
-2. Create or reuse an Azure Storage account and obtain its connection string:
-
-```bash
-az storage account create --name <unique-storage-account> --resource-group kitchendeck-rg --location eastus --sku Standard_LRS
-az storage account show-connection-string --name <unique-storage-account> --resource-group kitchendeck-rg -o tsv
-```
-
-3. Create an Azure Static Web App in the Azure portal or CLI. The GitHub Action will deploy to it using the API token.
-
-### GitHub Container Registry prerequisites
-
-1. Ensure the repository package permissions allow the workflow to publish to GHCR.
-2. In the repository settings, enable package writes for the workflow.
-3. The workflow uses `GITHUB_TOKEN` for authentication, so no extra registry secret is required.
-
-### Backend runtime environment
-
-The container image expects these env vars at runtime:
-
+- `ASPNETCORE_ENVIRONMENT=Production`
 - `ASPNETCORE_URLS=http://+:8080`
-- `Jwt__Secret=<strong secret>`
+- `Jwt__Secret=<strong 32+ char secret>`
 - `ConnectionStrings__AzureBlobStorage=<azure storage connection string>`
+- `Cors__AllowedOrigins__0=https://<your-swa>.azurestaticapps.net` (exact origin, no trailing slash)
 
-### Frontend runtime configuration
+```bash
+az containerapp update \
+  --name <app> --resource-group <rg> \
+  --set-env-vars \
+    ASPNETCORE_ENVIRONMENT=Production \
+    ASPNETCORE_URLS=http://+:8080 \
+    Jwt__Secret="<32+ char secret>" \
+    ConnectionStrings__AzureBlobStorage="<blob connection string>" \
+    Cors__AllowedOrigins__0="https://<your-swa>.azurestaticapps.net"
+```
 
-The Vite frontend currently uses the API URL from its build-time environment. Update the deploy config or environment variables so the browser calls your Azure Container Instance public URL.
+Also confirm the Container App's ingress target port is **8080** and that a GHCR pull credential (`read:packages` PAT) is configured, since the image is a private package.
 
-### Manual deployment checklist
+### Deployment checklist
 
-1. Push the repo to GitHub.
+1. Push the repo to GitHub and enable Actions.
 2. Add the GitHub secrets listed above.
-3. Ensure the Azure service principal credentials in `AZURE_CREDENTIALS` have permission to create resources and deploy to the resource group.
-4. Create the Azure Static Web App and copy its deployment token into `AZURE_STATIC_WEB_APPS_API_TOKEN`.
-5. Commit to the `main` branch and let GitHub Actions run the workflow.
-6. After the run completes, open the Azure Static Web App URL for the frontend and the ACI FQDN for the backend.
+3. Create the Azure Container App (external ingress, target port 8080, GHCR private image, scale 0–1) and the Azure Static Web App.
+4. Apply the one-time backend environment configuration.
+5. Set `BACKEND_URL` to your Container App URL **plus `/api`**.
+6. Commit to `main`; the workflow builds, pushes, and deploys automatically.
+7. Open the Static Web App URL for the frontend; it calls the Container App backend.
