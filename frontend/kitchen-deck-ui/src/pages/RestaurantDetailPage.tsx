@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, ExternalLink, KeyRound, Trash2, UserPlus, Users } from 'lucide-react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { AlertTriangle, ArrowLeft, ExternalLink, KeyRound, Trash2, UserPlus, Users } from 'lucide-react';
 import { restaurantApi } from '../services/api';
 import { ALL_ROLES, type Member, type Restaurant, type StaffRole } from '../types';
 import MenuManager from '../components/MenuManager';
@@ -9,10 +9,12 @@ import ThemeToggle from '../components/ThemeToggle';
 
 export default function RestaurantDetailPage() {
   const { id = '' } = useParams();
+  const navigate = useNavigate();
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const [email, setEmail] = useState('');
   const [newRoles, setNewRoles] = useState<StaffRole[]>(['Waiter']);
@@ -94,6 +96,23 @@ export default function RestaurantDetailPage() {
       await load();
     } catch (err: any) {
       setError(err.response?.data?.message ?? 'Could not set passcode.');
+    }
+  };
+
+  const onDeleteRestaurant = async () => {
+    if (!restaurant) return;
+    const confirmed = window.confirm(
+      `Delete "${restaurant.name}"? This permanently removes its menu, tables, orders and staff. This cannot be undone.`,
+    );
+    if (!confirmed) return;
+    setError(null);
+    setDeleting(true);
+    try {
+      await restaurantApi.remove(restaurant.id);
+      navigate('/');
+    } catch (err: any) {
+      setError(err.response?.data?.message ?? 'Could not delete restaurant.');
+      setDeleting(false);
     }
   };
 
@@ -234,6 +253,24 @@ export default function RestaurantDetailPage() {
             )}
           </section>
         </>
+      )}
+
+      {restaurant.isOwner && (
+        <section className="panel danger-zone">
+          <h2><AlertTriangle size={18} /> Danger zone</h2>
+          <div className="danger-row">
+            <div>
+              <h3>Delete this restaurant</h3>
+              <p className="muted">
+                Permanently removes the restaurant along with its menu, tables, orders and staff.
+                This cannot be undone.
+              </p>
+            </div>
+            <button className="btn-danger" onClick={onDeleteRestaurant} disabled={deleting}>
+              <Trash2 size={16} /> {deleting ? 'Deleting…' : 'Delete restaurant'}
+            </button>
+          </div>
+        </section>
       )}
     </div>
   );

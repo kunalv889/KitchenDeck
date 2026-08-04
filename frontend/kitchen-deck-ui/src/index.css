@@ -352,7 +352,12 @@ textarea:focus {
 .stacked-form { display: flex; flex-direction: column; gap: 0.85rem; }
 .form-row { display: flex; gap: 0.75rem; flex-wrap: wrap; }
 .form-row input { flex: 1 1 120px; min-width: 0; }
-.form-actions { display: flex; gap: 0.75rem; align-items: center; }
+.form-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
 .checkbox-row {
   flex-direction: row;
   align-items: center;
@@ -458,6 +463,23 @@ textarea:focus {
 
 /* ---- Utilities ---------------------------------------------------------- */
 .muted { color: var(--muted); }
+
+/* ---- Danger zone -------------------------------------------------------- */
+.danger-zone {
+  border: 1px solid var(--danger);
+  background: var(--danger-soft);
+}
+.danger-zone h2 { color: var(--danger); }
+.danger-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.danger-row h3 { margin: 0 0 0.25rem; }
+.danger-row p { margin: 0; max-width: 48ch; }
+
 .error {
   color: var(--danger);
   background: var(--danger-soft);

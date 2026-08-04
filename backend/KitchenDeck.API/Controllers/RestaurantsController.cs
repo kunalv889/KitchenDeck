@@ -171,4 +171,22 @@ public class RestaurantsController : ControllerBase
         await _restaurants.SaveAsync(restaurant, ct);
         return NoContent();
     }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(string id, CancellationToken ct)
+    {
+        var restaurant = await _restaurants.GetByIdAsync(id, ct);
+        if (restaurant is null)
+        {
+            return NotFound();
+        }
+
+        if (restaurant.OwnerUserId != CurrentUserId)
+        {
+            return Forbid();
+        }
+
+        await _restaurants.DeleteAsync(id, ct);
+        return NoContent();
+    }
 }

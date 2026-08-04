@@ -75,6 +75,7 @@ export const restaurantApi = {
     api.delete(`/restaurants/${id}/members/${userId}`),
   setKitchenPasscode: (id: string, passcode: string) =>
     api.put(`/restaurants/${id}/kitchen-passcode`, { passcode }),
+  remove: (id: string) => api.delete(`/restaurants/${id}`),
 };
 
 export type MenuItemInput = {

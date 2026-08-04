@@ -159,6 +159,21 @@ public class RestaurantService
         await SaveMembershipAsync(membership, ct);
     }
 
+    /// <summary>Deletes a restaurant and all data owned by it (orders, menu, tables, membership).</summary>
+    public async Task DeleteAsync(string restaurantId, CancellationToken ct = default)
+    {
+        var orders = await _store.ListByPrefixAsync<Order>(Containers.Orders, $"{restaurantId}/", ct);
+        foreach (var order in orders)
+        {
+            await _store.DeleteAsync(Containers.Orders, $"{restaurantId}/{order.Id}", ct);
+        }
+
+        await _store.DeleteAsync(Containers.Menu, restaurantId, ct);
+        await _store.DeleteAsync(Containers.Tables, restaurantId, ct);
+        await _store.DeleteAsync(Containers.Members, restaurantId, ct);
+        await _store.DeleteAsync(Containers.Restaurants, restaurantId, ct);
+    }
+
     public bool VerifyKitchenPasscode(Restaurant restaurant, string passcode)
     {
         if (restaurant.KitchenPasscodeHash is null || restaurant.KitchenPasscodeSalt is null)
