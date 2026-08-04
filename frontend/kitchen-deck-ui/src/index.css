@@ -383,6 +383,7 @@ textarea:focus {
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
+  flex-wrap: wrap;
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: var(--r-md);
@@ -396,7 +397,7 @@ textarea:focus {
   box-shadow: var(--shadow-md);
 }
 .card h3 { margin: 0; }
-.card-actions { display: flex; gap: 0.5rem; align-items: center; }
+.card-actions { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
 
 /* ---- Chips -------------------------------------------------------------- */
 .role-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.6rem; }
@@ -723,6 +724,8 @@ textarea:focus {
   .page { padding: 1.25rem 1rem 3rem; }
   .topbar { flex-wrap: wrap; }
   h1 { font-size: 1.4rem; }
+  .card-actions { width: 100%; }
+  .card-actions .btn { flex: 1 1 0; justify-content: center; }
 }
 
 /* ---- Reduced motion ----------------------------------------------------- */
