@@ -1,6 +1,17 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { AlertTriangle, ArrowLeft, ExternalLink, KeyRound, Trash2, UserPlus, Users } from 'lucide-react';
+import {
+  AlertTriangle,
+  ArrowLeft,
+  ExternalLink,
+  KeyRound,
+  LayoutGrid,
+  Settings,
+  Trash2,
+  UserPlus,
+  UtensilsCrossed,
+  Users,
+} from 'lucide-react';
 import { restaurantApi } from '../services/api';
 import { ALL_ROLES, type Member, type Restaurant, type StaffRole } from '../types';
 import MenuManager from '../components/MenuManager';
@@ -20,6 +31,7 @@ export default function RestaurantDetailPage() {
   const [newRoles, setNewRoles] = useState<StaffRole[]>(['Waiter']);
   const [passcode, setPasscode] = useState('');
   const [status, setStatus] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'menu' | 'tables' | 'staff' | 'settings'>('menu');
 
   const isAdmin = useMemo(
     () => restaurant?.isOwner || restaurant?.myRoles.includes('Admin'),
@@ -137,6 +149,15 @@ export default function RestaurantDetailPage() {
     );
   }
 
+  const tabs = [
+    { id: 'menu' as const, label: 'Menu', icon: UtensilsCrossed, show: true },
+    { id: 'tables' as const, label: 'Tables', icon: LayoutGrid, show: true },
+    { id: 'staff' as const, label: 'Staff', icon: Users, show: !!isAdmin },
+    { id: 'settings' as const, label: 'Settings', icon: Settings, show: !!isAdmin || restaurant.isOwner },
+  ].filter((t) => t.show);
+
+  const currentTab = tabs.some((t) => t.id === activeTab) ? activeTab : 'menu';
+
   return (
     <div className="page">
       <header className="topbar">
@@ -149,6 +170,19 @@ export default function RestaurantDetailPage() {
         </div>
       </header>
 
+      <nav className="tab-nav">
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            className={`tab-item ${currentTab === t.id ? 'tab-item-active' : ''}`}
+            onClick={() => setActiveTab(t.id)}
+          >
+            <t.icon size={16} /> {t.label}
+          </button>
+        ))}
+      </nav>
+
       {status && <p className="success">{status}</p>}
       {error && <p className="error">{error}</p>}
 
@@ -160,10 +194,15 @@ export default function RestaurantDetailPage() {
         </section>
       )}
 
-      <MenuManager restaurantId={restaurant.id} canEdit={!!isAdmin} />
-      <TablesManager restaurantId={restaurant.id} canEdit={!!isAdmin} />
+      {currentTab === 'menu' && (
+        <MenuManager restaurantId={restaurant.id} canEdit={!!isAdmin} />
+      )}
 
-      {isAdmin && (
+      {currentTab === 'tables' && (
+        <TablesManager restaurantId={restaurant.id} canEdit={!!isAdmin} />
+      )}
+
+      {currentTab === 'staff' && isAdmin && (
         <>
           <section className="panel">
             <h2><UserPlus size={18} /> Add staff</h2>
@@ -224,53 +263,59 @@ export default function RestaurantDetailPage() {
               ))}
             </ul>
           </section>
-
-          <section className="panel">
-            <h2><KeyRound size={18} /> Kitchen window passcode</h2>
-            <p className="muted">
-              {restaurant.hasKitchenPasscode
-                ? 'A passcode is set. Enter a new value to change it.'
-                : 'No passcode set yet.'}
-            </p>
-            <form className="inline-form" onSubmit={onSetPasscode}>
-              <input
-                placeholder="6-digit passcode"
-                value={passcode}
-                inputMode="numeric"
-                maxLength={6}
-                onChange={(e) => setPasscode(e.target.value.replace(/\D/g, ''))}
-              />
-              <button type="submit">Save passcode</button>
-            </form>
-            {restaurant.hasKitchenPasscode && (
-              <p className="muted">
-                Open the live board:{' '}
-                <Link className="inline-link" to={`/kitchen/${id}`} target="_blank" rel="noopener">
-                  Kitchen window <ExternalLink size={13} />
-                </Link>{' '}
-                (opens with the passcode above).
-              </p>
-            )}
-          </section>
         </>
       )}
 
-      {restaurant.isOwner && (
-        <section className="panel danger-zone">
-          <h2><AlertTriangle size={18} /> Danger zone</h2>
-          <div className="danger-row">
-            <div>
-              <h3>Delete this restaurant</h3>
+      {currentTab === 'settings' && (
+        <>
+          {isAdmin && (
+            <section className="panel">
+              <h2><KeyRound size={18} /> Kitchen window passcode</h2>
               <p className="muted">
-                Permanently removes the restaurant along with its menu, tables, orders and staff.
-                This cannot be undone.
+                {restaurant.hasKitchenPasscode
+                  ? 'A passcode is set. Enter a new value to change it.'
+                  : 'No passcode set yet.'}
               </p>
-            </div>
-            <button className="btn-danger" onClick={onDeleteRestaurant} disabled={deleting}>
-              <Trash2 size={16} /> {deleting ? 'Deleting…' : 'Delete restaurant'}
-            </button>
-          </div>
-        </section>
+              <form className="inline-form" onSubmit={onSetPasscode}>
+                <input
+                  placeholder="6-digit passcode"
+                  value={passcode}
+                  inputMode="numeric"
+                  maxLength={6}
+                  onChange={(e) => setPasscode(e.target.value.replace(/\D/g, ''))}
+                />
+                <button type="submit">Save passcode</button>
+              </form>
+              {restaurant.hasKitchenPasscode && (
+                <p className="muted">
+                  Open the live board:{' '}
+                  <Link className="inline-link" to={`/kitchen/${id}`} target="_blank" rel="noopener">
+                    Kitchen window <ExternalLink size={13} />
+                  </Link>{' '}
+                  (opens with the passcode above).
+                </p>
+              )}
+            </section>
+          )}
+
+          {restaurant.isOwner && (
+            <section className="panel danger-zone">
+              <h2><AlertTriangle size={18} /> Danger zone</h2>
+              <div className="danger-row">
+                <div>
+                  <h3>Delete this restaurant</h3>
+                  <p className="muted">
+                    Permanently removes the restaurant along with its menu, tables, orders and staff.
+                    This cannot be undone.
+                  </p>
+                </div>
+                <button className="btn-danger" onClick={onDeleteRestaurant} disabled={deleting}>
+                  <Trash2 size={16} /> {deleting ? 'Deleting…' : 'Delete restaurant'}
+                </button>
+              </div>
+            </section>
+          )}
+        </>
       )}
     </div>
   );

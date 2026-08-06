@@ -304,6 +304,38 @@ textarea:focus {
   gap: 0.5rem;
 }
 
+/* ---- Tab navigation ----------------------------------------------------- */
+.tab-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+.tab-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.6rem 1rem;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  border-radius: var(--r-sm) var(--r-sm) 0 0;
+  transition: color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+.tab-item:hover {
+  color: var(--text);
+  background: var(--accent-soft);
+}
+.tab-item-active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
 /* ---- Auth --------------------------------------------------------------- */
 .auth-card {
   width: 100%;
