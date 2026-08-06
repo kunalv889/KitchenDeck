@@ -3,7 +3,7 @@ import { LayoutGrid, Pencil, Plus, Trash2 } from 'lucide-react';
 import { tableApi, type TableInput } from '../services/api';
 import type { DiningTable } from '../types';
 
-const empty: TableInput = { number: 1, label: '', seats: 2 };
+const empty: TableInput = { number: 0, label: '', seats: 0 };
 
 export default function TablesManager({
   restaurantId,
@@ -77,11 +77,11 @@ export default function TablesManager({
         <form className="stacked-form" onSubmit={onSubmit}>
           <div className="form-row">
             <input
-              type="number"
-              min="1"
-              placeholder="Table #"
-              value={form.number}
-              onChange={(e) => setForm({ ...form, number: Number(e.target.value) })}
+              type="text"
+              inputMode="numeric"
+              placeholder="Table number"
+              value={form.number === 0 ? '' : form.number}
+              onChange={(e) => setForm({ ...form, number: Number(e.target.value) || 0 })}
               required
             />
             <input
@@ -90,11 +90,11 @@ export default function TablesManager({
               onChange={(e) => setForm({ ...form, label: e.target.value })}
             />
             <input
-              type="number"
-              min="0"
-              placeholder="Seats"
-              value={form.seats}
-              onChange={(e) => setForm({ ...form, seats: Number(e.target.value) })}
+              type="text"
+              inputMode="numeric"
+              placeholder="Seating capacity"
+              value={form.seats === 0 ? '' : form.seats}
+              onChange={(e) => setForm({ ...form, seats: Number(e.target.value) || 0 })}
             />
           </div>
           <div className="form-actions">

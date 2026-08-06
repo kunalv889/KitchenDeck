@@ -100,12 +100,11 @@ export default function MenuManager({
               onChange={(e) => setForm({ ...form, category: e.target.value })}
             />
             <input
-              type="number"
-              step="0.01"
-              min="0"
+              type="text"
+              inputMode="decimal"
               placeholder="Price"
-              value={form.price}
-              onChange={(e) => setForm({ ...form, price: Number(e.target.value) })}
+              value={form.price === 0 ? '' : form.price}
+              onChange={(e) => setForm({ ...form, price: Number(e.target.value) || 0 })}
               required
             />
           </div>
