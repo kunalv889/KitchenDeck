@@ -54,7 +54,7 @@ export default function RestaurantsPage() {
       <header className="topbar">
         <h1 className="brand"><ChefHat size={24} /> KitchenDeck</h1>
         <div className="topbar-right">
-          <span className="muted">{user?.displayName}</span>
+          <Link to="/profile" className="muted">{user?.displayName}</Link>
           <ThemeToggle />
           <button className="btn-secondary" onClick={logout}>
             <LogOut size={16} /> Sign out

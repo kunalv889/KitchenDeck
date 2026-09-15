@@ -14,3 +14,10 @@ public record LoginRequest(
 public record AuthResponse(string Token, UserDto User);
 
 public record UserDto(string Id, string Email, string DisplayName);
+
+public record UpdateProfileRequest(
+    [Required] string DisplayName);
+
+public record ChangePasswordRequest(
+    [Required] string CurrentPassword,
+    [Required, MinLength(6)] string NewPassword);

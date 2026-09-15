@@ -27,4 +27,7 @@ public class UserService
 
     public Task SaveAsync(User user, CancellationToken ct = default) =>
         _store.UpsertAsync(Containers.Users, user.Id, user, ct);
+
+    public Task<bool> DeleteAsync(string id, CancellationToken ct = default) =>
+        _store.DeleteAsync(Containers.Users, id, ct);
 }

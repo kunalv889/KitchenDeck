@@ -13,11 +13,13 @@ public class AuthController : ControllerBase
 {
     private readonly UserService _users;
     private readonly ITokenService _tokens;
+    private readonly RestaurantService _restaurants;
 
-    public AuthController(UserService users, ITokenService tokens)
+    public AuthController(UserService users, ITokenService tokens, RestaurantService restaurants)
     {
         _users = users;
         _tokens = tokens;
+        _restaurants = restaurants;
     }
 
     [HttpPost("register")]
@@ -71,6 +73,65 @@ public class AuthController : ControllerBase
         }
 
         return Ok(new UserDto(user.Id, user.Email, user.DisplayName));
+    }
+
+    [Authorize]
+    [HttpPut("me")]
+    public async Task<ActionResult<UserDto>> UpdateProfile(UpdateProfileRequest request, CancellationToken ct)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId is null) return Unauthorized();
+
+        var user = await _users.GetByIdAsync(userId, ct);
+        if (user is null) return NotFound();
+
+        user.DisplayName = request.DisplayName.Trim();
+        await _users.SaveAsync(user, ct);
+        return Ok(new UserDto(user.Id, user.Email, user.DisplayName));
+    }
+
+    [Authorize]
+    [HttpPost("change-password")]
+    public async Task<IActionResult> ChangePassword(ChangePasswordRequest request, CancellationToken ct)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId is null) return Unauthorized();
+
+        var user = await _users.GetByIdAsync(userId, ct);
+        if (user is null) return NotFound();
+
+        if (!PasswordHasher.Verify(request.CurrentPassword, user.PasswordHash, user.PasswordSalt))
+        {
+            return BadRequest(new { message = "Current password is incorrect." });
+        }
+
+        var (hash, salt) = PasswordHasher.Hash(request.NewPassword);
+        user.PasswordHash = hash;
+        user.PasswordSalt = salt;
+        await _users.SaveAsync(user, ct);
+        return Ok();
+    }
+
+    [Authorize]
+    [HttpDelete("me")]
+    public async Task<IActionResult> DeleteAccount(CancellationToken ct)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId is null) return Unauthorized();
+
+        // Delete restaurants owned by this user.
+        var owned = await _restaurants.ListForUserAsync(userId, ct);
+        foreach (var r in owned)
+        {
+            if (r.OwnerUserId == userId)
+            {
+                await _restaurants.DeleteAsync(r.Id, ct);
+            }
+        }
+
+        // Delete the user record.
+        await _users.DeleteAsync(userId, ct);
+        return NoContent();
     }
 
     private AuthResponse BuildResponse(User user)

@@ -59,6 +59,11 @@ export const authApi = {
   login: (email: string, password: string) =>
     api.post<AuthResponse>('/auth/login', { email, password }).then((r) => r.data),
   me: () => api.get<User>('/auth/me').then((r) => r.data),
+  updateProfile: (displayName: string) =>
+    api.put<User>('/auth/me', { displayName }).then((r) => r.data),
+  changePassword: (currentPassword: string, newPassword: string) =>
+    api.post('/auth/change-password', { currentPassword, newPassword }).then((r) => r.data),
+  deleteMe: () => api.delete('/auth/me').then((r) => r.data),
 };
 
 export const restaurantApi = {

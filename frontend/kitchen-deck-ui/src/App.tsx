@@ -6,6 +6,7 @@ import RestaurantsPage from './pages/RestaurantsPage';
 import RestaurantDetailPage from './pages/RestaurantDetailPage';
 import OrdersPage from './pages/OrdersPage';
 import KitchenPage from './pages/KitchenPage';
+import ProfilePage from './pages/ProfilePage';
 
 export default function App() {
   return (
@@ -18,6 +19,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <RestaurantsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <ProfilePage />
           </ProtectedRoute>
         }
       />
