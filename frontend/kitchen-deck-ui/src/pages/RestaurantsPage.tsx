@@ -8,6 +8,7 @@ import ThemeToggle from '../components/ThemeToggle';
 
 export default function RestaurantsPage() {
   const { user, logout } = useAuth();
+  const [activeTab, setActiveTab] = useState<'create' | 'list'>('list');
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
@@ -61,66 +62,87 @@ export default function RestaurantsPage() {
         </div>
       </header>
 
-      <section className="panel">
-        <h2><Plus size={18} /> Create a restaurant</h2>
-        <form className="inline-form" onSubmit={onCreate}>
-          <input
-            placeholder="Restaurant name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
-          <input
-            placeholder="Kitchen passcode (6 digits, optional)"
-            value={passcode}
-            inputMode="numeric"
-            maxLength={6}
-            onChange={(e) => setPasscode(e.target.value.replace(/\D/g, ''))}
-          />
-          <button type="submit" disabled={creating}>
-            <Plus size={16} />
-            {creating ? 'Creating…' : 'Create'}
-          </button>
-        </form>
-        {error && <p className="error">{error}</p>}
-      </section>
+      <nav className="tab-nav">
+        <button
+          type="button"
+          className={`tab-item ${activeTab === 'list' ? 'tab-item-active' : ''}`}
+          onClick={() => setActiveTab('list')}
+        >
+          <Store size={16} /> Your restaurants
+        </button>
+        <button
+          type="button"
+          className={`tab-item ${activeTab === 'create' ? 'tab-item-active' : ''}`}
+          onClick={() => setActiveTab('create')}
+        >
+          <Plus size={16} /> Create restaurant
+        </button>
+      </nav>
 
-      <section className="panel">
-        <h2><Store size={18} /> Your restaurants</h2>
-        {loading ? (
-          <div className="skeleton-list">
-            <div className="skeleton skeleton-row" />
-            <div className="skeleton skeleton-row" />
-            <div className="skeleton skeleton-row" />
-          </div>
-        ) : restaurants.length === 0 ? (
-          <div className="empty-state">
-            <Store size={30} />
-            <p className="muted">You are not part of any restaurant yet. Create one above.</p>
-          </div>
-        ) : (
-          <ul className="card-list">
-            {restaurants.map((r) => (
-              <li key={r.id} className="card">
-                <div>
-                  <h3>{r.name}</h3>
-                  <p className="muted">
-                    {r.isOwner ? 'Owner' : r.myRoles.join(', ') || 'Member'}
-                  </p>
-                </div>
-                <div className="card-actions">
-                  <Link className="btn btn-secondary" to={`/restaurants/${r.id}/orders`}>
-                    <ClipboardList size={15} /> Orders
-                  </Link>
-                  <Link className="btn btn-secondary" to={`/restaurants/${r.id}`}>
-                    <Settings size={15} /> Manage
-                  </Link>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      {activeTab === 'create' && (
+        <section className="panel">
+          <h2><Plus size={18} /> Create a restaurant</h2>
+          <form className="inline-form" onSubmit={onCreate}>
+            <input
+              placeholder="Restaurant name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+            <input
+              placeholder="Kitchen passcode (6 digits, optional)"
+              value={passcode}
+              inputMode="numeric"
+              maxLength={6}
+              onChange={(e) => setPasscode(e.target.value.replace(/\D/g, ''))}
+            />
+            <button type="submit" disabled={creating}>
+              <Plus size={16} />
+              {creating ? 'Creating…' : 'Create'}
+            </button>
+          </form>
+          {error && <p className="error">{error}</p>}
+        </section>
+      )}
+
+      {activeTab === 'list' && (
+        <section className="panel">
+          <h2><Store size={18} /> Your restaurants</h2>
+          {loading ? (
+            <div className="skeleton-list">
+              <div className="skeleton skeleton-row" />
+              <div className="skeleton skeleton-row" />
+              <div className="skeleton skeleton-row" />
+            </div>
+          ) : restaurants.length === 0 ? (
+            <div className="empty-state">
+              <Store size={30} />
+              <p className="muted">You are not part of any restaurant yet. Create one above.</p>
+            </div>
+          ) : (
+            <ul className="card-list">
+              {restaurants.map((r) => (
+                <li key={r.id} className="card">
+                  <div>
+                    <h3>{r.name}</h3>
+                    <p className="muted">
+                      {r.isOwner ? 'Owner' : r.myRoles.join(', ') || 'Member'}
+                    </p>
+                  </div>
+                  <div className="card-actions">
+                    <Link className="btn btn-secondary" to={`/restaurants/${r.id}/orders`}>
+                      <ClipboardList size={15} /> Orders
+                    </Link>
+                    <Link className="btn btn-secondary" to={`/restaurants/${r.id}`}>
+                      <Settings size={15} /> Manage
+                    </Link>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
     </div>
   );
 }
